@@ -1,3 +1,4 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -6,8 +7,8 @@ require("dotenv").config();
 
 // middleware
 app.use(cors());
+app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0iqyqsv.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -20,11 +21,24 @@ async function run() {
     const categoriesCollection = client
       .db("techxbazar")
       .collection("categories");
+    const productsCollection = client.db("techxbazar").collection("products");
 
     app.get("/categories", async (req, res) => {
       const query = {};
       const result = await categoriesCollection.find(query).toArray();
       res.send(result);
+    });
+
+    // all products of category
+    app.get("/category/:id", async (req, res) => {
+      const categoryId = req.params.id;
+      const query = { _id: ObjectId(categoryId) };
+      const { name } = await categoriesCollection.findOne(query);
+
+      const newQuery = { category: name.toLowerCase() };
+      const products = await productsCollection.find(newQuery).toArray();
+
+      res.send({ name, products });
     });
   } finally {
   }
