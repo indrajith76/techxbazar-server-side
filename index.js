@@ -22,6 +22,7 @@ async function run() {
       .db("techxbazar")
       .collection("categories");
     const productsCollection = client.db("techxbazar").collection("products");
+    const usersCollection = client.db("techxbazar").collection("users");
 
     app.get("/categories", async (req, res) => {
       const query = {};
@@ -39,6 +40,12 @@ async function run() {
       const products = await productsCollection.find(newQuery).toArray();
 
       res.send({ name, products });
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
     });
   } finally {
   }
