@@ -36,20 +36,20 @@ const client = new MongoClient(uri, {
 
 // middleware for verify
 function verifyJWT(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).send("unauthorized access");
-    }
-    const token = authHeader.split(" ")[1];
-  
-    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
-      if (err) {
-        return res.status(403).send({ message: "forbidden access" });
-      }
-      req.decoded = decoded;
-      next();
-    });
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("unauthorized access");
   }
+  const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 async function run() {
   try {
@@ -154,11 +154,27 @@ async function run() {
     });
 
     // Admin checker api
-    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+    app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.typeOfUser === "admin" });
+    });
+
+    // Seller checker api
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isSeller: user?.typeOfUser === "seller" });
+    });
+
+    // Buyer checker api
+    app.get("/users/buyer/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isBuyer: user?.typeOfUser === "buyer" });
     });
   } finally {
   }
