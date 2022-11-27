@@ -34,6 +34,23 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+// middleware for verify
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).send("unauthorized access");
+    }
+    const token = authHeader.split(" ")[1];
+  
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+      if (err) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      req.decoded = decoded;
+      next();
+    });
+  }
+
 async function run() {
   try {
     const categoriesCollection = client
@@ -41,6 +58,19 @@ async function run() {
       .collection("categories");
     const productsCollection = client.db("techxbazar").collection("products");
     const usersCollection = client.db("techxbazar").collection("users");
+
+    // verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.typeOfUser !== "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      next();
+    };
 
     app.get("/categories", async (req, res) => {
       const query = {};
@@ -123,7 +153,13 @@ async function run() {
       res.send(result);
     });
 
-
+    // Admin checker api
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.typeOfUser === "admin" });
+    });
   } finally {
   }
 }
