@@ -89,13 +89,28 @@ async function run() {
       res.status(403).send({ accessToken: "" });
     });
 
-    // get users
+    // get sellers
     app.get("/allSellers", async (req, res) => {
       const query = { typeOfUser: "seller" };
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     });
 
+    // get buyers
+    app.get("/allBuyers", async (req, res) => {
+      const query = { typeOfUser: "buyer" };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get users
+    app.get("/allUsers", async (req, res) => {
+      const query = {};
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // post user
     app.post("/users", async (req, res) => {
       const user = req.body;
       const userQuery = { email: user.email };
@@ -107,6 +122,8 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+
   } finally {
   }
 }
