@@ -105,6 +105,32 @@ async function run() {
       res.send(result);
     });
 
+    // advertise products
+    app.put("/myProducts", async (req, res) => {
+      const id = req.query.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          isAdvertise: true,
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // delete products
+    app.delete("/myProducts", async (req, res) => {
+      const id = req.query.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // jwt api
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
@@ -133,6 +159,14 @@ async function run() {
       res.send(result);
     });
 
+    // delete buyer
+    app.delete("/allBuyers", async (req, res) => {
+      const deleteEmail = req.query.email;
+      const query = { email: deleteEmail };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // get users
     app.get("/allUsers", async (req, res) => {
       const query = {};
@@ -153,6 +187,14 @@ async function run() {
       res.send(result);
     });
 
+    // delete user
+    app.delete("/deleteUser", async (req, res) => {
+      const userEmail = req.query.email;
+      const query = { email: userEmail };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // Admin checker api
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
@@ -161,12 +203,67 @@ async function run() {
       res.send({ isAdmin: user?.typeOfUser === "admin" });
     });
 
+    // make admin
+    app.put("/makeAdmin", async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          typeOfUser: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
     // Seller checker api
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       res.send({ isSeller: user?.typeOfUser === "seller" });
+    });
+
+    // delete seller
+    app.delete("/deleteSeller", async (req, res) => {
+      const email = req.query.email;
+      const queryOfSellerProducts = { sellerEmail: email };
+      const sellerProduct = await productsCollection.deleteMany(
+        queryOfSellerProducts
+      );
+
+      const sellerQuery = { email: email };
+      const resultSeller = await usersCollection.deleteOne(sellerQuery);
+      res.send(resultSeller);
+    });
+
+    // verify seller
+    app.put("/verifySeller", async (req, res) => {
+      const email = req.query.email;
+      const filterSeller = { email: email };
+      const queryOfSellerProducts = { sellerEmail: email };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          isVerified: true,
+        },
+      };
+      const productsResult = await productsCollection.updateMany(
+        queryOfSellerProducts,
+        updatedDoc,
+        options
+      );
+      const sellerResult = await usersCollection.updateOne(
+        filterSeller,
+        updatedDoc,
+        options
+      );
+      res.send(sellerResult);
     });
 
     // Buyer checker api
