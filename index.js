@@ -5,6 +5,7 @@ const cors = require("cors");
 const port = process.env.PORT || 5000;
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 // middleware
 app.use(cors());
@@ -59,6 +60,7 @@ async function run() {
     const productsCollection = client.db("techxbazar").collection("products");
     const usersCollection = client.db("techxbazar").collection("users");
     const ordersCollection = client.db("techxbazar").collection("orders");
+    const paymentsCollection = client.db("techxbazar").collection("payments");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -109,8 +111,12 @@ async function run() {
     // advertise product
     app.get("/advertiseProducts", async (req, res) => {
       const query = { isAdvertise: true };
+
+      const soldQuery = { isSold: true };
+      const soldProduct = await productsCollection.findOne(soldQuery);
       const result = await productsCollection.find(query).limit(3).toArray();
-      res.send(result);
+      const filter = result.filter(product => product.isSold !== soldProduct.isSold)
+      res.send(filter);
     });
 
     // advertise products
@@ -136,6 +142,51 @@ async function run() {
       const id = req.query.id;
       const query = { _id: ObjectId(id) };
       const result = await productsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // stripe payment get way
+    app.post("/create-payment-intent", async (req, res) => {
+      const order = req.body;
+      const price = order.price;
+      const amount = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+      const id = payment.orderId;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const updateResult = await ordersCollection.updateOne(filter, updatedDoc);
+
+      const productId = payment.productId;
+      const productFilter = { _id: ObjectId(productId) };
+      const updatedProductDoc = {
+        $set: {
+          isSold: true,
+        },
+      };
+      const updateProduct = await productsCollection.updateOne(
+        productFilter,
+        updatedProductDoc
+      );
+
       res.send(result);
     });
 
@@ -288,7 +339,21 @@ async function run() {
       const result = await ordersCollection.insertOne(product);
       res.send(result);
     });
-    
+
+    // myOrders of buyers
+    app.get("/myOrders", async (req, res) => {
+      const email = req.query.email;
+      const query = { buyerEmail: email };
+      const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/myOrders/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = await ordersCollection.findOne(query);
+      res.send(order);
+    });
   } finally {
   }
 }
