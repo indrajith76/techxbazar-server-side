@@ -58,6 +58,7 @@ async function run() {
       .collection("categories");
     const productsCollection = client.db("techxbazar").collection("products");
     const usersCollection = client.db("techxbazar").collection("users");
+    const ordersCollection = client.db("techxbazar").collection("orders");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -102,6 +103,13 @@ async function run() {
       const email = req.query.email;
       const query = { sellerEmail: email };
       const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // advertise product
+    app.get("/advertiseProducts", async (req, res) => {
+      const query = { isAdvertise: true };
+      const result = await productsCollection.find(query).limit(3).toArray();
       res.send(result);
     });
 
@@ -273,6 +281,14 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ isBuyer: user?.typeOfUser === "buyer" });
     });
+
+    // Buyer order add
+    app.post("/myOrders", async (req, res) => {
+      const product = req.body;
+      const result = await ordersCollection.insertOne(product);
+      res.send(result);
+    });
+    
   } finally {
   }
 }
