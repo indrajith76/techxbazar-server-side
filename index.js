@@ -61,6 +61,7 @@ async function run() {
     const usersCollection = client.db("techxbazar").collection("users");
     const ordersCollection = client.db("techxbazar").collection("orders");
     const paymentsCollection = client.db("techxbazar").collection("payments");
+    const reportsCollection = client.db("techxbazar").collection("reports");
 
     // verifyAdmin
     const verifyAdmin = async (req, res, next) => {
@@ -115,7 +116,9 @@ async function run() {
       const soldQuery = { isSold: true };
       const soldProduct = await productsCollection.findOne(soldQuery);
       const result = await productsCollection.find(query).limit(3).toArray();
-      const filter = result.filter(product => product.isSold !== soldProduct.isSold)
+      const filter = result.filter(
+        (product) => product.isSold !== soldProduct.isSold
+      );
       res.send(filter);
     });
 
@@ -353,6 +356,36 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const order = await ordersCollection.findOne(query);
       res.send(order);
+    });
+
+    // mybuyers api for seller
+    app.get("/myBuyers", async (req, res) => {
+      const email = req.query.email;
+      const query = { sellerEmail: email };
+      const result = await ordersCollection.find(query).toArray();
+
+      const defaultQuery = {};
+      const userResult = await usersCollection.find(defaultQuery).toArray();
+
+      const filterBuyer = result.filter(
+        (user) => !userResult.includes(user.email)
+      );
+
+      res.send(filterBuyer);
+    });
+
+    // report post
+    app.post("/reports", async (req, res) => {
+      const report = req.body;
+      const result = await reportsCollection.insertOne(report);
+      res.send(result);
+    });
+
+    // report get
+    app.get("/reports", async (req, res) => {
+      const query = {};
+      const result = await reportsCollection.find(query).toArray();
+      res.send(result);
     });
   } finally {
   }
