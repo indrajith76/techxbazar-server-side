@@ -109,16 +109,24 @@ async function run() {
       res.send(result);
     });
 
+    // latest products
+    app.get("/latestProducts", async (req, res) => {
+      const query = {};
+      const soldQuery = { isSold: true };
+      const soldProduct = await productsCollection.findOne(soldQuery);
+      const result = await productsCollection.find(query).sort({ dateOfPost: 1 }).toArray();
+      const filter = result.filter((product) => product.isSold !== soldProduct.isSold).slice(0,3);
+      res.send(filter);
+    });
+
     // advertise product
     app.get("/advertiseProducts", async (req, res) => {
       const query = { isAdvertise: true };
 
       const soldQuery = { isSold: true };
       const soldProduct = await productsCollection.findOne(soldQuery);
-      const result = await productsCollection.find(query).limit(3).toArray();
-      const filter = result.filter(
-        (product) => product.isSold !== soldProduct.isSold
-      );
+      const result = await productsCollection.find(query).toArray();
+      const filter = result.filter((product) => product.isSold !== soldProduct.isSold).slice(0,3);
       res.send(filter);
     });
 
